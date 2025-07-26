@@ -178,7 +178,7 @@ def chatbotReply(children: list, answer: bool):
     elif not answer and children:
         if len(children) == 1:
             children_str = children[0]
-        elif len(results) == 2:
+        elif len(children) == 2:
             children_str = " and ".join(children)
         else:
             children_str = ", ".join(children[:-1]) + ", and " + children[-1]
@@ -281,19 +281,19 @@ while go_question:
             answer = bool(list(prolog.query(f"parents_of({words[1]}, {words[3]}, {words[-1][:-1]})")))
             yesNoChatbot(answer)
 
-        elif misspelledWordsForQuery(words[-3]) == 'children': #Questions "Children" -> Can ask 2 or more children
+        elif misspelledWordsForQuery(words[-3]) == 'child' or words[-3] == 'children': #Questions "Children" -> Can ask 2 or more children
             relationship = misspelledWordsForQuery(words[-3]) 
             found_and = False #boolean for checking the word "and"
             all_children = True #boolean for checking if parent has this all children
             list_of_children = []
             parent = words[-1][:-1]
             word_ctr = 1 #set to 1 since second word is the name
-            
+
             while not found_and:
-                child_name = fixName(word[word_ctr])
+                child_name = fixName(words[word_ctr])
                 if child_name == "and":
                     found_and = True #this means last checking of child
-                    child_name = fixName(word[word_ctr+1])
+                    child_name = fixName(words[word_ctr+1])
                 
                 #print(f"QUERYING: child({child_name}, {parent})")
                 answer = bool(list(prolog.query(f"child({child_name}, {parent})")))
