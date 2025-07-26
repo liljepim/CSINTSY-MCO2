@@ -112,16 +112,16 @@ prolog.assertz("parent(anastasia, mama)")
 prolog.assertz("parent(anastasia, meme)")
 
 #                   Mimi
-prolog.assertz("female(Mimi)")
+prolog.assertz("female(mimi)")
 
 #                   Momo
-prolog.assertz("female(Momo)")
+prolog.assertz("female(momo)")
 
 #                   Mama
-prolog.assertz("female(Mama)")
+prolog.assertz("female(mama)")
 
 #                   Meme
-prolog.assertz("female(Meme)")
+prolog.assertz("female(meme)")
 
 
 
@@ -157,6 +157,12 @@ print(f"The daughter of Michael: {daughter} but as son: {sonT}")
 
 res = list(prolog.query("male(alice)"))
 print("Is Alice male?", res)
+
+print("LIST OF FEMALE:")
+print(list(prolog.query("female(X)")))
+print("\nLIST OF MALE:")
+print(list(prolog.query("male(X)")))
+print()
 """
 
 
@@ -166,12 +172,27 @@ def yesNoChatbot(answer: bool):
     else:
         print("Chatbot: No\n")
 
+def chatbotReply(children: list, answer: bool):
+    if answer and children:
+        print("Chatbot: Yes\n")
+    elif not answer and children:
+        if len(children) == 1:
+            children_str = children[0]
+        elif len(results) == 2:
+            children_str = " and ".join(children)
+        else:
+            children_str = ", ".join(children[:-1]) + ", and " + children[-1]
+            
+        print(f"Chatbot: Only {children_str}\n")
+    else:
+        print("Chatbot: No\n")
+
 #https://stackoverflow.com/questions/41192424/python-how-to-correct-misspelled-names
 #https://docs.python.org/3/library/difflib.html
 def misspelledWordsForQuery(word: str) -> str:
     corrected_queries = ['father', 'mother', 'child', 'children', 'son', 'daughter', 'sibling',
                          'brother', 'sister', 'grandmother', 'grandfather', 'aunt', 'uncle',
-                         'grandparent', 'ancestor']
+                         'grandparent', 'relative', 'parent']
     check_spelling = difflib.get_close_matches(word, corrected_queries, n=1, cutoff=0.7)
     if check_spelling:
         if check_spelling[0] == 'children':
@@ -188,14 +209,20 @@ def fixDuplicates(word: list) -> str:
     results = list(results) #back to list so I can access them
 
     if len(results) == 1:
-        return results[0]
+        return "is", results[0]
     elif len(results) == 2:
-        return " and ".join(results)
+        return "are", " and ".join(results)
 
-    return ", ".join(results[:-1]) + ", and " + results[-1]
+    return "are", ", ".join(results[:-1]) + ", and " + results[-1]
+
+def fixName(name: str) -> str:
+    character = name[-1]
+    if not character.isalpha():
+        name = name[:-1] #remove punctuation character like ","
+    return name
+
 
 starting_questions = ['is', 'are', 'who']
-
 
 print("   QUESTION PROMPTS")
 print("-------------------------------------------------------------------------------")
@@ -232,28 +259,68 @@ while go_question:
 
     if words[0] == starting_questions[0]: #Is questions -> Yes or No answers
         relationship = misspelledWordsForQuery(words[3]) #accounts for misspelling queries for smooth conversation
+        if not relationship:
+            print("Chatbot: Unknown \"Is\" Question. Kindly refer to the questions prompts for guidance.\n")
+            continue
+        #print(f"QUERYING: {relationship}({words[1]}, {words[-1][:-1]})")
         answer = bool(list(prolog.query(f"{relationship}({words[1]}, {words[-1][:-1]})")))
         yesNoChatbot(answer)
 
-    #TODO
-    if words[0] == starting_questions[1]: #Are questions -> Yes or No answers
-        if words[4] == words[-1]: #Questions siblings or relatives
+    elif words[0] == starting_questions[1]: #"Are" questions -> Yes or No answers
+        if words[4] == words[-1]: #Questions "siblings" or "relatives"
             relationship = misspelledWordsForQuery(words[4][:-1]) 
+            #print(f"QUERYING: {relationship}({words[1]}, {words[3]})")
             answer = bool(list(prolog.query(f"{relationship}({words[1]}, {words[3]})")))
+            if not answer: #try switching names
+                #print(f"QUERYING: {relationship}({words[3]}, {words[1]})")
+                answer = bool(list(prolog.query(f"{relationship}({words[3]}, {words[1]})")))
             yesNoChatbot(answer)
-        else: #Questions Parent or Children -> Can ask 2 or more children
-            pass
 
-    if words[0] == starting_questions[2]: #Who questions
+        elif misspelledWordsForQuery(words[5]) == 'parent': #Questions "parents of"
+            #print(f"QUERYING: parents_of({words[1]}, {words[3]}, {words[-1][:-1]})")
+            answer = bool(list(prolog.query(f"parents_of({words[1]}, {words[3]}, {words[-1][:-1]})")))
+            yesNoChatbot(answer)
+
+        elif misspelledWordsForQuery(words[-3]) == 'children': #Questions "Children" -> Can ask 2 or more children
+            relationship = misspelledWordsForQuery(words[-3]) 
+            found_and = False #boolean for checking the word "and"
+            all_children = True #boolean for checking if parent has this all children
+            list_of_children = []
+            parent = words[-1][:-1]
+            word_ctr = 1 #set to 1 since second word is the name
+            
+            while not found_and:
+                child_name = fixName(word[word_ctr])
+                if child_name == "and":
+                    found_and = True #this means last checking of child
+                    child_name = fixName(word[word_ctr+1])
+                
+                #print(f"QUERYING: child({child_name}, {parent})")
+                answer = bool(list(prolog.query(f"child({child_name}, {parent})")))
+                if answer:
+                    list_of_children.append(child_name.capitalize())
+                else:
+                    all_children = False #automatic false if one is not
+                word_ctr = word_ctr + 1 #next name
+
+            chatbotReply(list_of_children, all_children)
+                
+        else:
+            print("Chatbot: Unknown \"Are\" Question. Kindly refer to the questions prompts for guidance.\n")
+
+    elif words[0] == starting_questions[2]: #Who questions
         relationship = misspelledWordsForQuery(words[3])
+        if not relationship:
+            print("Chatbot: Unknown \"Who\" Question. Kindly refer to the questions prompts for guidance.\n")
+            continue
+        #print(f"QUERYING: {relationship}(X, {words[-1][:-1]})")
         answer = list(prolog.query(f"{relationship}(X, {words[-1][:-1]})"))
         if not answer:
             print(f"Chatbot: {words[-1][:-1].capitalize()} has no {words[3]}.\n")
         else:
-            response = fixDuplicates(answer)
-            print(f"Chatbot: The {words[3]} of {words[-1][:-1].capitalize()} {words[1]} {response}\n")
+            verb, response = fixDuplicates(answer)
+            print(f"Chatbot: The {words[3]} of {words[-1][:-1].capitalize()} {verb} {response}\n")
 
-#print(words)
 
 
 
