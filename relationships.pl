@@ -25,6 +25,8 @@ grandmother(GM,C)  :- grandparent(GM,C), female(GM).
 /* relatives like ancestor or descendant */
 ancestor(A,D)      :- parent(A,D).
 ancestor(A,D)      :- parent(A,X), ancestor(X,D).
+descendant(D,A)    :- parent(A,D).
+descendant(D,A)    :- parent(A,X), descendant(D,X).
 
 /* tito tita by BLOOD no marriage rules.... */
 uncle(U,N)         :- parent(P,N), sibling(U,P), male(U).
@@ -34,3 +36,5 @@ aunt(A,N)          :- parent(P,N), sibling(A,P), female(A).
 parents_of(P1,P2,C) :- parent(P1,C), parent(P2,C), P1 \= P2.
 
 /* relative relationships */
+cousin(C1,C2)      :- parent(P1,C1), parent(P2,C2), sibling(P1,P2).
+relative(R1,R2)    :- ((ancestor(R1, X), ancestor(R2, X)); (descendant(R1, X), descendant(R2, X))), R1 \= R2.
