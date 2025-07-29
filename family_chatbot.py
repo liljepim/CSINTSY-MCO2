@@ -146,12 +146,6 @@ class FamilyChatbot:
         for rule in rules:
             self.prolog.assertz(rule)
 
-    def extract_names(self, text: str) -> List[str]:
-        """Extract capitalized names from text."""
-        # Pattern for names: starts with capital letter, followed by lowercase letters
-        name_pattern = r"\b[A-Z][a-z]+\b"
-        return re.findall(name_pattern, text)
-
     def parse_statement(self, text: str) -> Optional[Tuple[str, List[str]]]:
         """Parse statements to determine relationship type and extract names."""
         text = text.lower().strip()
@@ -284,105 +278,6 @@ class FamilyChatbot:
             return True
         except:
             return False
-
-    def check_feasibility(self, rel_type: str, names: List[str]) -> bool:
-        """Check if a relationship statement is feasible."""
-        if rel_type in ["mother", "father", "child", "daughter", "son"]:
-            if len(names) != 2:
-                return False
-            person1, person2 = names
-
-            # Check for self-relationships
-            if person1 == person2:
-                return False
-
-            # Check for circular relationships
-            try:
-                if rel_type in ["mother", "father"]:
-                    # Check if child is already a parent of the parent
-                    print(list(self.prolog.query(f"ancestor({person2}, {person1})")))
-                    result = list(self.prolog.query(f"ancestor({person2}, {person1})"))[
-                        :5
-                    ]
-                    if result:
-                        return False
-                elif rel_type in ["child", "daughter", "son"]:
-                    # Check if parent is already a child of the child
-                    result = list(self.prolog.query(f"ancestor({person1}, {person2})"))[
-                        :5
-                    ]
-                    if result:
-                        return False
-            except:
-                pass
-
-            return True
-
-        elif rel_type in ["sister", "brother", "siblings"]:
-            if len(names) != 2:
-                return False
-            person1, person2 = names
-
-            # Check for self-sibling
-            if person1 == person2:
-                return False
-
-            return True
-
-        elif rel_type in ["grandmother", "grandfather"]:
-            if len(names) != 2:
-                return False
-            grandparent, grandchild = names
-
-            # Check for self-grandparent
-            if grandparent == grandchild:
-                return False
-
-            return True
-
-        elif rel_type in ["uncle", "aunt"]:
-            if len(names) != 2:
-                return False
-            uncle_aunt, niece_nephew = names
-
-            # Check for self-uncle/aunt
-            if uncle_aunt == niece_nephew:
-                return False
-
-            return True
-
-        elif rel_type == "parents_of":
-            if len(names) != 3:
-                return False
-            parent1, parent2, child = names
-
-            # Check for self-parenting
-            if parent1 == child or parent2 == child:
-                return False
-
-            # Check for same parent
-            if parent1 == parent2:
-                return False
-
-            return True
-
-        elif rel_type == "children_of":
-            if len(names) < 3:
-                return False
-            children = names[:-1]
-            parent = names[-1]
-
-            # Check for self-parenting
-            if parent in children:
-                return False
-
-            # Check for duplicate children
-            if len(children) != len(set(children)):
-                return False
-
-            return True
-
-        return False
 
     def check_contradiction(self, relation: str, names) -> list[str]:
         contradictions = []
@@ -579,194 +474,15 @@ class FamilyChatbot:
         except Exception as e:
             return f"Error adding fact: {str(e)}"
 
-    def query_relationship(self, query_type: str, names: List[str]) -> str:
-        """Query the knowledge base for relationships."""
-        try:
-            if query_type == "are_siblings":
-                person1, person2 = names
-                # Limit results to prevent infinite loops
-                result = list(self.prolog.query(f"sibling({person1}, {person2})"))[:10]
-                return "Yes!" if result else "No!"
-
-            elif query_type == "who_siblings":
-                person = names[0]
-                siblings = list(self.prolog.query(f"sibling({person}, Sibling)"))[:10]
-                if siblings:
-                    sibling_names = [s["Sibling"] for s in siblings]
-                    return f"{', '.join(sibling_names)}"
-                else:
-                    return "I don't know."
-
-            elif query_type == "is_sister":
-                sister, sibling = names
-                result = list(self.prolog.query(f"sister({sister}, {sibling})"))
-                return "Yes!" if result else "No!"
-
-            elif query_type == "is_brother":
-                brother, sibling = names
-                result = list(self.prolog.query(f"brother({brother}, {sibling})"))
-                return "Yes!" if result else "No!"
-
-            elif query_type == "is_mother":
-                mother, child = names
-                result = list(self.prolog.query(f"mother({mother}, {child})"))
-                return "Yes!" if result else "No!"
-
-            elif query_type == "is_father":
-                father, child = names
-                result = list(self.prolog.query(f"father({father}, {child})"))
-                return "Yes!" if result else "No!"
-
-            elif query_type == "are_parents":
-                parent1, parent2, child = names
-                result1 = list(self.prolog.query(f"parent({parent1}, {child})"))
-                result2 = list(self.prolog.query(f"parent({parent2}, {child})"))
-                return "Yes!" if result1 and result2 else "No!"
-
-            elif query_type == "who_sisters":
-                person = names[0]
-                sisters = list(self.prolog.query(f"sister(Sister, {person})"))[:10]
-                if sisters:
-                    sister_names = [s["Sister"] for s in sisters]
-                    return f"{', '.join(sister_names)}"
-                else:
-                    return "I don't know."
-
-            elif query_type == "who_brothers":
-                person = names[0]
-                brothers = list(self.prolog.query(f"brother(Brother, {person})"))[:10]
-                if brothers:
-                    brother_names = [b["Brother"] for b in brothers]
-                    return f"{', '.join(brother_names)}"
-                else:
-                    return "I don't know."
-
-            elif query_type == "who_mother":
-                person = names[0]
-                mothers = list(self.prolog.query(f"mother(Mother, {person})"))[:10]
-                if mothers:
-                    mother_names = [m["Mother"] for m in mothers]
-                    return f"{', '.join(mother_names)}"
-                else:
-                    return "I don't know."
-
-            elif query_type == "who_father":
-                person = names[0]
-                fathers = list(self.prolog.query(f"father(Father, {person})"))[:10]
-                if fathers:
-                    father_names = [f["Father"] for f in fathers]
-                    return f"{', '.join(father_names)}"
-                else:
-                    return "I don't know."
-
-            elif query_type == "who_parents":
-                person = names[0]
-                parents = list(self.prolog.query(f"parent(Parent, {person})"))[:10]
-                if parents:
-                    parent_names = [p["Parent"] for p in parents]
-                    return f"{', '.join(parent_names)}"
-                else:
-                    return "I don't know."
-
-            elif query_type == "is_grandmother":
-                grandmother, grandchild = names
-                result = list(
-                    self.prolog.query(f"grandmother({grandmother}, {grandchild})")
-                )
-                return "Yes!" if result else "No!"
-
-            elif query_type == "is_grandfather":
-                grandfather, grandchild = names
-                result = list(
-                    self.prolog.query(f"grandfather({grandfather}, {grandchild})")
-                )
-                return "Yes!" if result else "No!"
-
-            elif query_type == "is_daughter":
-                daughter, parent = names
-                result = list(self.prolog.query(f"daughter({daughter}, {parent})"))
-                return "Yes!" if result else "No!"
-
-            elif query_type == "is_son":
-                son, parent = names
-                result = list(self.prolog.query(f"son({son}, {parent})"))
-                return "Yes!" if result else "No!"
-
-            elif query_type == "who_daughters":
-                person = names[0]
-                daughters = list(self.prolog.query(f"daughter(Daughter, {person})"))[
-                    :10
-                ]
-                if daughters:
-                    daughter_names = [d["Daughter"] for d in daughters]
-                    return f"{', '.join(daughter_names)}"
-                else:
-                    return "I don't know."
-
-            elif query_type == "who_sons":
-                person = names[0]
-                sons = list(self.prolog.query(f"son(Son, {person})"))[:10]
-                if sons:
-                    son_names = [s["Son"] for s in sons]
-                    return f"{', '.join(son_names)}"
-                else:
-                    return "I don't know."
-
-            elif query_type == "is_child":
-                child, parent = names
-                result = list(self.prolog.query(f"child({child}, {parent})"))
-                return "Yes!" if result else "No!"
-
-            elif query_type == "who_children":
-                person = names[0]
-                children = list(self.prolog.query(f"child(Child, {person})"))[:10]
-                if children:
-                    child_names = [c["Child"] for c in children]
-                    return f"{', '.join(child_names)}"
-                else:
-                    return "I don't know."
-
-            elif query_type == "are_children":
-                if len(names) == 3:
-                    child1, child2, parent = names
-                    result1 = list(self.prolog.query(f"child({child1}, {parent})"))
-                    result2 = list(self.prolog.query(f"child({child2}, {parent})"))
-                    return "Yes!" if result1 and result2 else "No!"
-                elif len(names) == 4:
-                    child1, child2, child3, parent = names
-                    result1 = list(self.prolog.query(f"child({child1}, {parent})"))
-                    result2 = list(self.prolog.query(f"child({child2}, {parent})"))
-                    result3 = list(self.prolog.query(f"child({child3}, {parent})"))
-                    return "Yes!" if result1 and result2 and result3 else "No!"
-
-            elif query_type == "is_aunt":
-                aunt, niece_nephew = names
-                result = list(self.prolog.query(f"aunt({aunt}, {niece_nephew})"))
-                return "Yes!" if result else "No!"
-
-            elif query_type == "is_uncle":
-                uncle, niece_nephew = names
-                result = list(self.prolog.query(f"uncle({uncle}, {niece_nephew})"))
-                return "Yes!" if result else "No!"
-
-            elif query_type == "are_relatives":
-                person1, person2 = names
-                # Check if they share any family relationship
-                result = list(self.prolog.query(f"relative({person1}, {person2})"))
-                return "Yes!" if result else "No!"
-
-        except Exception as e:
-            return f"Error querying relationship: {str(e)}"
-
-    def yesNoChatbot(self, answer: bool):
+    def yes_no_response(self, answer: bool):
         if answer:
-            return "Yes\n"
+            return "Yes!"
         else:
-            return "No\n"
+            return "No!"
 
-    def chatbotReply(self, children: list, answer: bool):
+    def children_response(self, children: list, answer: bool):
         if answer and children:
-            return "Yes\n"
+            return "Yes!"
         elif not answer and children:
             if len(children) == 1:
                 children_str = children[0]
@@ -775,13 +491,12 @@ class FamilyChatbot:
             else:
                 children_str = ", ".join(children[:-1]) + ", and " + children[-1]
 
-            return f"Only {children_str}\n"
+            return f"Only {children_str}."
         else:
-            return "No\n"
+            return "No!"
 
-    # https://stackoverflow.com/questions/41192424/python-how-to-correct-misspelled-names
-    # https://docs.python.org/3/library/difflib.html
-    def misspelledWordsForQuery(self, word: str) -> str:
+    
+    def misspelled_words_for_query(self, word: str) -> str:
         corrected_queries = [
             "father",
             "mother",
@@ -810,7 +525,7 @@ class FamilyChatbot:
         else:
             return word
 
-    def fixDuplicates(self, word: list) -> str:
+    def fix_duplicates(self, word: list) -> str:
         results = set()  # remove duplicates
         for answer in word:
             name = answer["X"].capitalize()
@@ -825,7 +540,7 @@ class FamilyChatbot:
 
         return "are", ", ".join(results[:-1]) + ", and " + results[-1]
 
-    def fixName(self, name: str) -> str:
+    def fix_name(self, name: str) -> str:
         character = name[-1]
         if not character.isalpha():
             name = name[:-1]  # remove punctuation character like ","
@@ -835,37 +550,33 @@ class FamilyChatbot:
         starting_questions = ["is", "are", "who"]
         words = question.lower().split(" ")  # should query in all lower case
         if words[0] == starting_questions[0]:  # Is questions -> Yes or No answers
-            relationship = self.misspelledWordsForQuery(
+            relationship = self.misspelled_words_for_query(
                 words[3]
             )  # accounts for misspelling queries for smooth conversation
             if not relationship:
-                return 'Unknown "Is" Question. Kindly refer to the questions prompts for guidance.\n'
-            # print(f"QUERYING: {relationship}({words[1]}, {words[-1][:-1]})")
+                return 'Unknown "Is" Question. Please try a different way of asking.'
             answer = bool(
                 list(self.prolog.query(f"{relationship}({words[1]}, {words[-1][:-1]})"))
             )
-            return self.yesNoChatbot(answer)
+            return self.yes_no_response(answer)
 
         elif words[0] == starting_questions[1]:  # "Are" questions -> Yes or No answers
             if words[4] == words[-1]:  # Questions "siblings" or "relatives"
-                relationship = self.misspelledWordsForQuery(words[4][:-1])
-                # print(f"QUERYING: {relationship}({words[1]}, {words[3]})")
+                relationship = self.misspelled_words_for_query(words[4][:-1])
                 answer = bool(
                     list(self.prolog.query(f"{relationship}({words[1]}, {words[3]})"))
                 )
                 if not answer:  # try switching names
-                    # print(f"QUERYING: {relationship}({words[3]}, {words[1]})")
                     answer = bool(
                         list(
                             self.prolog.query(f"{relationship}({words[3]}, {words[1]})")
                         )
                     )
-                self.yesNoChatbot(answer)
+                self.yes_no_response(answer)
 
             elif (
-                self.misspelledWordsForQuery(words[5]) == "parent"
+                self.misspelled_words_for_query(words[5]) == "parent"
             ):  # Questions "parents of"
-                # print(f"QUERYING: parents_of({words[1]}, {words[3]}, {words[-1][:-1]})")
                 answer = bool(
                     list(
                         self.prolog.query(
@@ -873,13 +584,13 @@ class FamilyChatbot:
                         )
                     )
                 )
-                return self.yesNoChatbot(answer)
+                return self.yes_no_response(answer)
 
             elif (
-                self.misspelledWordsForQuery(words[-3]) == "child"
+                self.misspelled_words_for_query(words[-3]) == "child"
                 or words[-3] == "children"
             ):  # Questions "Children" -> Can ask 2 or more children
-                relationship = self.misspelledWordsForQuery(words[-3])
+                relationship = self.misspelled_words_for_query(words[-3])
                 found_and = False  # boolean for checking the word "and"
                 all_children = (
                     True  # boolean for checking if parent has this all children
@@ -889,12 +600,11 @@ class FamilyChatbot:
                 word_ctr = 1  # set to 1 since second word is the name
 
                 while not found_and:
-                    child_name = self.fixName(words[word_ctr])
+                    child_name = self.fix_name(words[word_ctr])
                     if child_name == "and":
                         found_and = True  # this means last checking of child
-                        child_name = self.fixName(words[word_ctr + 1])
+                        child_name = self.fix_name(words[word_ctr + 1])
 
-                    # print(f"QUERYING: child({child_name}, {parent})")
                     answer = bool(
                         list(self.prolog.query(f"child({child_name}, {parent})"))
                     )
@@ -904,22 +614,21 @@ class FamilyChatbot:
                         all_children = False  # automatic false if one is not
                     word_ctr = word_ctr + 1  # next name
 
-                return self.chatbotReply(list_of_children, all_children)
+                return self.children_response(list_of_children, all_children)
 
             else:
-                return 'Unknown "Are" Question. Kindly refer to the questions prompts for guidance.\n'
+                return 'Unknown "Are" Question. Please try a different way of asking.'
 
         elif words[0] == starting_questions[2]:  # Who questions
-            relationship = self.misspelledWordsForQuery(words[3])
+            relationship = self.misspelled_words_for_query(words[3])
             if not relationship:
-                return 'Unknown "Who" Question. Kindly refer to the questions prompts for guidance.\n'
-            # print(f"QUERYING: {relationship}(X, {words[-1][:-1]})")
+                return 'Unknown "Who" Question. Please try a different way of asking.'
             answer = list(self.prolog.query(f"{relationship}(X, {words[-1][:-1]})"))
             if not answer:
-                return f"{words[-1][:-1].capitalize()} has no {words[3]}.\n"
+                return f"{words[-1][:-1].capitalize()} has no {words[3]}."
             else:
-                verb, response = self.fixDuplicates(answer)
-                return f"The {words[3]} of {words[-1][:-1].capitalize()} {verb} {response}\n"
+                verb, response = self.fix_duplicates(answer)
+                return f"The {words[3]} of {words[-1][:-1].capitalize()} {verb} {response}."
 
     def process_input(self, user_input: str) -> str:
         """Process user input and return appropriate response."""
@@ -937,10 +646,7 @@ class FamilyChatbot:
             parsed = self.parse_statement(user_input)
             if parsed:
                 rel_type, names = parsed
-                # print(f"Parsed: {rel_type}, {names}")
                 if not self.check_contradiction(rel_type, names):
-                    # print("Adding fact...")
-                    # print("Fact added!")
                     return self.add_fact(rel_type, names)
                 else:
                     return "That's impossible!"
@@ -949,6 +655,16 @@ class FamilyChatbot:
 
     def run(self):
         """Main chatbot loop."""
+        print(r"""
+
+_________                                     __             ____ ___       
+\_   ___ \  ____   ____   ____   ____   _____/  |_          |    |   \______
+/    \  \/ /  _ \ /    \ /    \_/ __ \_/ ___\   __\  ______ |    |   /  ___/
+\     \___(  <_> )   |  \   |  \  ___/\  \___|  |   /_____/ |    |  /\___ \ 
+ \______  /\____/|___|  /___|  /\___  >\___  >__|           |______//____  >
+        \/            \/     \/     \/     \/                            \/
+           
+        """)
         print("=" * 60)
         print("Welcome to the Family Relationship Chatbot!")
         print("I can help you manage and query family relationships.")
