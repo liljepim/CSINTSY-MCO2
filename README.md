@@ -30,7 +30,7 @@ After installation, you can simply run the program by invoking the following com
 python3 family_chatbot.py
 ```
 ## Contributors
-Arwyn Gabrielle A. Telosa (arwyn_telosa@dlsu.edu.ph)
-Judy P. Chua (judy_chua_b@dlsu.edu.ph)
-Eun Ji Ha (eun_ha@dlsu.edu.ph)
+Arwyn Gabrielle A. Telosa (arwyn_telosa@dlsu.edu.ph)<br>
+Judy P. Chua (judy_chua_b@dlsu.edu.ph)<br>
+Eun Ji Ha (eun_ha@dlsu.edu.ph)<br>
 Justin Paul B. Misagal (justin_misagal@dlsu.edu.ph)
