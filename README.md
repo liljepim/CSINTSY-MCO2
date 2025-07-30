@@ -1,4 +1,4 @@
-# CountUs
+# ConnectUs
 ConnectUs is a logic-based chatbot designed to understand and reason about family relationships. It was built on Python and is powered by the PROLOG inference engine. The chatbot can process natural language statements to learn new facts and respond to questions using logical deduction.
 ## Requirements
 1. Python 3.10 or higher
