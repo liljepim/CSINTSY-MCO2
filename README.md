@@ -1,5 +1,5 @@
-# ConnectUs
-ConnectUs is a logic-based chatbot designed to understand and reason about family relationships. It was built on Python and is powered by the PROLOG inference engine. The chatbot can process natural language statements to learn new facts and respond to questions using logical deduction.
+# Connect-Us
+Connect-Us is a logic-based chatbot designed to understand and reason about family relationships. It was built on Python and is powered by the PROLOG inference engine. The chatbot can process natural language statements to learn new facts and respond to questions using logical deduction.
 ## Requirements
 1. Python 3.10 or higher
 2. Pip
@@ -7,7 +7,7 @@ ConnectUs is a logic-based chatbot designed to understand and reason about famil
 4. SWI-Prolog ---> (Download from https://www.swi-prolog.org/download/devel)
 ## Download
 ### Option 1: Using Git to clone the repository (**Recommended**)
-Using git, you can clone the repository by using the `git clone` command with the SSH key (**recommended**) of the ConnectUs repository as shown below
+Using git, you can clone the repository by using the `git clone` command with the SSH key (**recommended**) of the Connect-Us repository as shown below
 ``` bash
 git clone git@github.com:liljepim/CSINTSY-MCO2.git # Clone using SSH
 cd CSINTSY-MCO2
@@ -24,7 +24,7 @@ Before running the program, it is important to download and install the necessar
 ``` bash
 pip install pyswip
 ```
-## Running ConnectUs
+## Running Connect-Us
 After installation, you can simply run the program by invoking the following command:
 ```
 python3 family_chatbot.py
