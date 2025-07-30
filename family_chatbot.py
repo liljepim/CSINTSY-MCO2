@@ -282,9 +282,21 @@ class FamilyChatbot:
     def check_contradiction(self, relation: str, names) -> list[str]:
         contradictions = []
 
-        x, y = names
-        x = x.lower()
-        y = y.lower()
+        if len(names) == 2:
+            x, y = names
+            x = x.lower()
+            y = y.lower()
+        elif len(names) == 3:
+            x, y, z = names
+            x = x.lower()
+            y = y.lower()
+            z = z.lower()
+        else:
+            x, y, z, a = names
+            x = x.lower()
+            y = y.lower()
+            z = z.lower()
+            a = a.lower()
 
         relation = relation.lower()
 
@@ -390,6 +402,25 @@ class FamilyChatbot:
                 sister, sibling = names
                 # Add parent relationship to make them siblings
                 # This is a simplified approach - in practice, you'd need to know their common parent
+                parents_1 = [
+                    res["X"] for res in list(self.prolog.query(f"parent(X, {sister})"))
+                ]
+                parents_2 = [
+                    res["X"] for res in list(self.prolog.query(f"parent(X, {sibling})"))
+                ]
+                common_parent = set(parents_1) & set(parents_2)
+                if common_parent:
+                    return "OK! I learned something."
+                elif len(parents_1) < 2 or len(parents_2) < 2:
+                    choice = input(
+                        "Can you provide us information about their common parent? [y/n]"
+                    )
+                    if choice.lower() == "y":
+                        common_name = input("Name of common parent: ")
+                        self.submit_assert("parent", [common_name.lower(), sister])
+                        self.submit_assert("parent", [common_name.lower(), sibling])
+                    else:
+                        return "Thats's impossible!"
                 self.prolog.assertz(f"female({sister})")
                 return "OK! I learned something."
 
@@ -397,12 +428,33 @@ class FamilyChatbot:
                 brother, sibling = names
                 # Add parent relationship to make them siblings
                 # This is a simplified approach - in practice, you'd need to know their common parent
+                parents_1 = [
+                    res["X"] for res in list(self.prolog.query(f"parent(X, {brother})"))
+                ]
+                parents_2 = [
+                    res["X"] for res in list(self.prolog.query(f"parent(X, {sibling})"))
+                ]
+                common_parent = set(parents_1) & set(parents_2)
+                if common_parent:
+                    return "OK! I learned something."
+                elif len(parents_1) < 2 or len(parents_2) < 2:
+                    choice = input(
+                        "Can you provide us information about their common parent? [y/n]"
+                    )
+                    if choice.lower() == "y":
+                        common_name = input("Name of common parent: ")
+                        self.submit_assert("parent", [common_name.lower(), brother])
+                        self.submit_assert("parent", [common_name.lower(), sibling])
+                    else:
+                        return "That's impossible!"
+
                 self.prolog.assertz(f"male({brother})")
                 return "OK! I learned something."
 
             elif rel_type == "siblings":
                 sibling1, sibling2 = names
                 # This is a simplified approach - in practice, you'd need to know their common parent
+                print("INSIDE")
                 parents_1 = [
                     res["X"]
                     for res in list(self.prolog.query(f"parent(X, {sibling1})"))
@@ -414,7 +466,7 @@ class FamilyChatbot:
                 common_parent = set(parents_1) & set(parents_2)
                 if common_parent:
                     return "OK! I learned something."
-                elif len(parents_1) == 1 or len(parents_2) == 1:
+                elif len(parents_1) < 2 or len(parents_2) < 2:
                     choice = input(
                         "Can you provide us information about their common parent? [y/n]"
                     )
@@ -495,7 +547,6 @@ class FamilyChatbot:
         else:
             return "No!"
 
-    
     def misspelled_words_for_query(self, word: str) -> str:
         corrected_queries = [
             "father",
@@ -572,7 +623,7 @@ class FamilyChatbot:
                             self.prolog.query(f"{relationship}({words[3]}, {words[1]})")
                         )
                     )
-                self.yes_no_response(answer)
+                return self.yes_no_response(answer)
 
             elif (
                 self.misspelled_words_for_query(words[5]) == "parent"
@@ -634,12 +685,7 @@ class FamilyChatbot:
         """Process user input and return appropriate response."""
         # Check if it's a question (ends with ?)
         if user_input.strip().endswith("?"):
-            parsed = self.parse_question(user_input)
-            if parsed:
-                query_type, names = parsed
-                return self.ask_question(user_input)
-            else:
-                return "I don't understand that question format. Please try a different way of asking."
+            return self.ask_question(user_input)
 
         # Check if it's a statement
         else:
